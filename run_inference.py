@@ -22,7 +22,7 @@ def main():
         
         # 테스트 데이터 처리
         logger.info("테스트 데이터 추론 시작...")
-        results = rag_service.process_test_data_for_test()
+        results = rag_service.process_test_data()
         
         # 결과 저장
         with open(output_path, 'w', encoding='utf-8') as f:
