@@ -1,0 +1,79 @@
+.log
+app.log
+.env
+__pycache__/
+*/vector_db/*
+**/vector_db/
+/vector_db/*
+/venv
+convert_pdf.log
+/tmp/
+/data
+/stal-v1
+
+# Python 관련 불필요한 파일
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# 환경 설정 파일
+.env
+*.log
+*.bak
+
+# IDE 관련 파일
+.vscode/
+.idea/
+*.iml
+
+# Virtual environment (venv, conda 등)
+venv/
+.env/
+.venv/
+*.egg-info/
+*.dist-info/
+
+# Jupyter Notebook 체크포인트
+.ipynb_checkpoints/
+
+# 빌드 및 배포 관련
+build/
+dist/
+*.egg
+*.manifest
+*.spec
+
+# 데이터 및 대형 파일
+*.sqlite3
+*.db
+*.csv
+*.tsv
+.DS_Store
+
+# Git 및 SSH 키 관련
+*.pem
+*.pub
+*.crt
+*.key
+
+# Logs & Debug
+logs/
+*.log
+nohup.out
+
+# Docker
+docker-compose.override.yml
+*.dockerignore
+
+# FastAPI Uvicorn 관련
+instance/
+*.pid
+
+# MongoDB 관련 (데이터베이스 덤프)
+dump/
+*.bson
+*.lock
+
+# AWS / Boto 관련 파일
+.aws/
