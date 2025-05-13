@@ -4,10 +4,11 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     GEMINI_API_KEY: str
     VECTOR_DB_PATH: str = "./vector_db/franchise"
-    #MODEL_NAME: str = "gemini-2.0-flash"
-    MODEL_NAME: str = "gemini-1.5-flash-8b"
+    MODEL_NAME: str = "gemini-2.0-flash"
+    #MODEL_NAME: str = "gemini-1.5-flash-8b"
     EMBEDDING_MODEL_PATH: str = "./stal-v1"
-    DEVICE: str = "cpu"
+    DEVICE: str = "cuda"
+    # DEVICE: str = "cpu"
     
     class Config:
         env_file = ".env"

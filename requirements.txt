@@ -7,7 +7,9 @@ sentence-transformers>=2.2.2
 
 google-generativeai
 
-# PyTorch (CPU 버전)
+# PyTorch (GPU 버전)
+# cpu는 밑에 줄 주석처리
+--extra-index-url https://download.pytorch.org/whl/cu118
 torch
 torchvision
 torchaudio
