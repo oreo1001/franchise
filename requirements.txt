@@ -5,6 +5,8 @@ langchain-huggingface>=0.0.6
 langchain-chroma>=0.0.10
 sentence-transformers>=2.2.2
 
+google-generativeai
+
 # PyTorch (CPU 버전)
 torch
 torchvision

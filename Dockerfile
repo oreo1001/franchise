@@ -1,22 +1,36 @@
 # Stage 1: 빌드
-FROM python:3.10-slim AS builder
+FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04 AS builder
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    python3.10 \
+    python3-pip \
+    python3.10-dev \
+    build-essential \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 COPY requirements.txt .
-RUN pip install --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+RUN pip3 install --upgrade pip && \
+    pip3 install --no-cache-dir -r requirements.txt
 
 # Stage 2: 실행
-FROM python:3.10-slim
-WORKDIR /app
-
+FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04
+ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    ca-certificates && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+    python3.10 \
+    python3-pip \
+    ca-certificates \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder /usr/local /usr/local 
+WORKDIR /app
+
+COPY --from=builder /usr/local/lib/python3.10/dist-packages /usr/local/lib/python3.10/dist-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
 
 COPY config.py franchise_service.py franchise_RAG.sh create_collection.py run_inference.py ./
 COPY stal-v1 /app/stal-v1
