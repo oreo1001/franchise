@@ -17,24 +17,18 @@ class GeminiFranchiseService:
         # 기본 설정 초기화
         self.initial_system_message = (
             "당신은 프랜차이즈 가맹점주를 위한 전문 Q&A 어시스턴트입니다. "
-            "당신은 솔트웨어 주식회사가 제공하는 엔터프라이즈 커스터마이징 AI 챗봇 솔루션 'Stal'입니다. "
-            "회사가 제공하는 프랜차이즈 가맹본부 및 가맹점 관련 정보(예: 월매출, 가맹비, 로열티 등)로 임베딩된 테이블 데이터를 사용하여 질문에 답변하세요. "
             "반드시 제공받은 context를 기반으로만 답변해야 하며, 별도로 지식을 추가하거나 재구성해서는 안 됩니다. "
-            "만약 질문이 제공된 context와 관련이 없거나, 답변할 정보가 없다면 '문서에 없는 내용입니다. 다시 질문해주세요.'라고 답변하세요. "
-            "모든 답변은 친절하고 정확하게 작성하되, 추측은 절대 하지 마세요."
+            "만약 질문이 제공된 context와 관련이 없거나, 답변할 정보가 없다면 예시 질문과 답변으로 그럴듯하게 답변하세요 ."
         )
         self.vectorstore_search_k = 3
-        self.context_max_length = 8000
-        
+        self.context_max_length = 8000# 변경
         genai.configure(api_key=api_key)
         self.vector_db_path = settings.VECTOR_DB_PATH
         self.model = genai.GenerativeModel(settings.MODEL_NAME)
         embedding_model_path = settings.EMBEDDING_MODEL_PATH
-        
         # QA 데이터 경로
         self.qa_data_path = os.path.join(os.path.dirname(self.vector_db_path), "qa_data/qa_pairs.json")
         self.qa_data = self._load_qa_data()
-        
         # 임베딩 모델 초기화 (로컬 모델 사용)
         logger.info(f"로컬 임베딩 모델 로드 중: {embedding_model_path}")
         self.embeddings = HuggingFaceEmbeddings(
@@ -44,9 +38,9 @@ class GeminiFranchiseService:
                 }
             )
         logger.info("로컬 임베딩 모델 로드 성공")
-        
         # Chroma 벡터 스토어 초기화
         self.chroma_vectorstore = self.load_chroma_vectorstore()
+        self.few_shot_vectorstore = self.load_few_shot_vectorstore()
     
     def _load_qa_data(self):
         """QA 데이터 로드"""
@@ -96,7 +90,43 @@ class GeminiFranchiseService:
         except Exception as e:
             logger.error(f"LangChain Chroma 벡터스토어 로드 실패: {str(e)}", exc_info=True)
             raise
-    
+#변경사항
+    def load_few_shot_vectorstore(self):
+            """few_shot 벡터스토어 로드"""
+            try:
+                few_shot_vector_db_path = "./vector_db/few_shot"
+                absolute_path = os.path.abspath(few_shot_vector_db_path)
+                if not os.path.exists(absolute_path):
+                    logger.error(f"few_shot 벡터 스토어 경로가 존재하지 않습니다: {absolute_path}")
+                    raise FileNotFoundError(f"few_shot 벡터 스토어 경로가 존재하지 않습니다: {absolute_path}")
+                vectorstore = Chroma(
+                    persist_directory=absolute_path,
+                    embedding_function=self.embeddings,
+                    collection_name="few_shot"
+                )
+                count = vectorstore._collection.count()
+                logger.info(f"few_shot 벡터 스토어 로드 완료: {absolute_path}, 문서 수: {count}")
+                return vectorstore
+            except Exception as e:
+                logger.error(f"few_shot Chroma 벡터스토어 로드 실패: {str(e)}", exc_info=True)
+                raise
+#변경사항
+    def retrieve_context_with_fewshot(self, query: str) -> str:
+            """few_shot 컨텍스트 검색"""
+            try:
+                results_code1 = self.few_shot_vectorstore.similarity_search(query=query, k=3)
+                context = "\n".join([
+                    f"문서 {idx}:\n질문: {doc.metadata['QUESTION']}\n답변: {doc.metadata['ANSWER']}\n{'---' * 10}"
+                    for idx, doc in enumerate(results_code1, 1)])
+                # context2 = "\n".join([
+                #     f"문서 {idx}:{doc.metadata['ORIGINAL_TEXT']}\n\n질문: {doc.metadata['QUESTION']}\n답변: {doc.metadata['ANSWER']}\n{'---' * 10}"
+                #     for idx, doc in enumerate(results_code1, 1)
+                # ])
+                logger.info(f"few_shot Chroma 검색 완료: {len(results_code1)}개 문서")
+                return context
+            except Exception as e:
+                logger.error(f"few_shot Chroma 검색 실패: {str(e)}")
+                return ""    
     def retrieve_context(self, query: str) -> str:
         """Chroma로 문서 검색 및 컨텍스트 생성"""
         try:
@@ -143,40 +173,46 @@ class GeminiFranchiseService:
             return ""
 
     def answer_question(self, query: str) -> str:
-        """사용자 질문에 RAG를 통해 답변"""
-        try:
-            context = self.retrieve_context(query)
-            
-            if not context:
-                return "검색 결과가 없습니다. 다른 질문을 해주세요."
-
-            prompt = f"""
-            {self.initial_system_message}
-
-            컨텍스트:
-            {context}
-
-            사용자 질문: {query}
-
-            답변:
-            """
-
-            for attempt in range(3):  # 최대 3번 재시도
+                """사용자 질문에 RAG를 통해 답변"""
                 try:
-                    response = self.model.generate_content(prompt)
-                    return response.text
-                except google_exceptions.ResourceExhausted as e:
-                    if "quota" in str(e).lower() or "retry" in str(e).lower():
-                        wait_time = 60
-                        logger.warning(f"쿼터 초과, {wait_time}초 후 재시도합니다...")
-                        time.sleep(wait_time)
-                    else:
-                        raise e  # 그 외의 오류는 바로 처리
-            return "요청이 반복적으로 실패했습니다. 잠시 후 다시 시도해주세요."
-        
-        except Exception as e:
-            logger.error(f"질문 답변 실패: {str(e)}")
-            return f"죄송합니다, 답변 생성 중 오류가 발생했습니다: {str(e)}"
+                    context = self.retrieve_context(query)
+                    examples = self.retrieve_context_with_fewshot(query)  # few_shot 컨텍스트 검색
+                    if not context:
+                        return "검색 결과가 없습니다. 다른 질문을 해주세요."
+                    # prompt = f"""
+                    # {self.initial_system_message}
+                    # 아래는 다른 회사의 상담 기록이야. 참고해
+                    # {context2}
+                    # 참고할 문서:
+                    # {context}
+                    # 사용자 질문: {query}
+                    # 답변:
+                    # """
+                    prompt = f"""
+                    {self.initial_system_message}
+                    다음은 예시 질문과 답변입니다:
+                {examples}
+                [참고 문서]
+                {context}
+                [질문]
+                {query}
+                [답변]:
+                    """
+                    for attempt in range(3):  # 최대 3번 재시도
+                        try:
+                            response = self.model.generate_content(prompt)
+                            return response.text
+                        except google_exceptions.ResourceExhausted as e:
+                            if "quota" in str(e).lower() or "retry" in str(e).lower():
+                                wait_time = 60
+                                logger.warning(f"쿼터 초과, {wait_time}초 후 재시도합니다...")
+                                time.sleep(wait_time)
+                            else:
+                                raise e
+                    return "요청이 반복적으로 실패했습니다. 잠시 후 다시 시도해주세요."
+                except Exception as e:
+                    logger.error(f"질문 답변 실패: {str(e)}")
+                    return f"죄송합니다, 답변 생성 중 오류가 발생했습니다: {str(e)}"
         
     def process_test_data_for_test(self):
         """테스트 데이터 처리 및 예측 결과 생성"""
@@ -229,6 +265,7 @@ class GeminiFranchiseService:
             logger.error("QA 데이터가 없습니다.")
             return []
         
+        
         results = []
         
         for i, qa_item in enumerate(self.qa_data):
@@ -244,7 +281,7 @@ class GeminiFranchiseService:
             result = {
                 "original_text": original_text,
                 "question": question,
-                "answer": answer  # LLM 추론 결과
+                "answer": answer.rstrip('\n')  # LLM 추론 결과
             }
             results.append(result)
             
@@ -253,3 +290,4 @@ class GeminiFranchiseService:
         
         logger.info(f"총 {len(results)}개의 질문 처리 완료")
         return results
+
