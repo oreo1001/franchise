@@ -5,7 +5,10 @@ langchain-huggingface>=0.0.6
 langchain-chroma>=0.0.10
 sentence-transformers>=2.2.2
 
-google-generativeai
+google-generativeai==0.8.5
+
+# 추가
+google-genai==1.15.0 
 
 # PyTorch (GPU 버전)
 # cpu는 밑에 줄 주석처리

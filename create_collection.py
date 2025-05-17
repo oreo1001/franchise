@@ -94,15 +94,14 @@ def main():
                 # 콘텐츠 구성 최적화
                 content = ""
 
-                # 1. 요약된 내용을 우선적으로 사용 (LLM이 이해하기 쉽게)
-                if "EXTRACTED_SUMMARY_TEXT" in contract["QL"] and contract["QL"]["EXTRACTED_SUMMARY_TEXT"]:
-                    extracted_summary = contract["QL"]["EXTRACTED_SUMMARY_TEXT"]
-                    content = f"{extracted_summary}\n\n"
-                    
-                    # 요약 없는 경우에만 원본 사용
-                elif "ORIGINAL_TEXT" in contract["QL"] and contract["QL"]["ORIGINAL_TEXT"]:
+                # 원본 사용
+                if "ORIGINAL_TEXT" in contract["QL"] and contract["QL"]["ORIGINAL_TEXT"]:
                     original_text = contract["QL"]["ORIGINAL_TEXT"]
                     content = f"{original_text}\n\n"
+                      # 2. 요약된 내용을 우선적으로 사용 (LLM이 이해하기 쉽게)
+                elif "EXTRACTED_SUMMARY_TEXT" in contract["QL"] and contract["QL"]["EXTRACTED_SUMMARY_TEXT"]:
+                    extracted_summary = contract["QL"]["EXTRACTED_SUMMARY_TEXT"]
+                    content = f"{extracted_summary}\n\n"    
 
                 # 내용이 비어있지 않은 경우만 문서 생성
                 if content.strip():
