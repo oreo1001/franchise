@@ -10,6 +10,7 @@ convert_pdf.log
 /tmp/
 /data
 /stal-v1
+stal-v1/
 
 # Python 관련 불필요한 파일
 __pycache__/
