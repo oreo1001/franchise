@@ -23,8 +23,8 @@ class GeminiFranchiseService:
             "만약 질문이 제공된 context와 관련이 없거나, 답변할 정보가 없다면 예시 질문과 답변으로 그럴듯하게 답변하세요 ."
             "답변 시 출처나 참고 표시는 포함하지 말아주세요."
         )
-        self.vectorstore_search_k = 20
-        self.context_max_length = 30000
+        self.vectorstore_search_k = 5
+        self.context_max_length = 10000
         genai.configure(api_key=api_key)
         self.vector_db_path = settings.VECTOR_DB_PATH
         self.model = genai.GenerativeModel(settings.MODEL_NAME)
@@ -183,10 +183,10 @@ class GeminiFranchiseService:
 
  
 
-    def answer_question(self, query: str) -> str:
+    def answer_question(self, query: str, context:str=None) -> str:
                 """사용자 질문에 RAG를 통해 답변"""
                 try:
-                    context = self.retrieve_context(query)
+                    # context = self.retrieve_context(query)
                     context2 = self.retrieve_context_fewshot(query)  # few_shot 컨텍스트 검색
                 
                     # if not context:
@@ -210,7 +210,8 @@ class GeminiFranchiseService:
                 {query}
                 [답변]:
                     """
-                    # print(prompt)
+
+                    print(prompt)
                     for attempt in range(3):  # 최대 3번 재시도
                         try:
                             response = self.model.generate_content(prompt)
@@ -248,7 +249,7 @@ class GeminiFranchiseService:
                 logger.info(f"질문 {i+1}/15 처리 중: {question}")
                 
                 # RAG를 통한 답변 생성
-                answer = self.answer_question(question)
+                answer = self.answer_question(question,original_text)
                 
                 # 결과 저장
                 result = {
@@ -287,7 +288,8 @@ class GeminiFranchiseService:
             logger.info(f"질문 {i+1}/{len(self.qa_data)} 처리 중: {question}")
             
             # RAG를 통한 답변 생성
-            answer = self.answer_question(question)
+           
+            answer = self.answer_question(question,original_text)
             
             # 결과 저장
             result = {
