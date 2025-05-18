@@ -211,7 +211,7 @@ class GeminiFranchiseService:
                 [답변]:
                     """
 
-                    print(prompt)
+                    # print(prompt)
                     for attempt in range(3):  # 최대 3번 재시도
                         try:
                             response = self.model.generate_content(prompt)
