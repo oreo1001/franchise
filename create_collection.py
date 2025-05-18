@@ -6,6 +6,7 @@ import argparse
 import json
 import os
 import glob
+import shutil
 
 def main():
     # 명령줄 인자 처리 - JSON 경로만 받음
@@ -22,6 +23,9 @@ def main():
     model_path = settings.EMBEDDING_MODEL_PATH
     
     # 출력 디렉토리가 없으면 생성
+    # 벡터 저장소 디렉토리 초기화
+    if os.path.exists(vector_db_path):
+        shutil.rmtree(vector_db_path)
     os.makedirs(vector_db_path, exist_ok=True)
     
     # 질문-답변 데이터 저장용 디렉토리
