@@ -59,8 +59,8 @@ def main():
             file_count += 1
             print(f"파일 {os.path.basename(json_file)} 로드 완료 - {len(contracts_data)}개 항목")
             
-            for contract in contracts_data:
-                doc_id = f"{contract['LRN_DTIN_MNNO']}_{contract['CHNK_NO']}"
+            for idx, contract in enumerate(contracts_data):
+                doc_id = f"{contract['LRN_DTIN_MNNO']}_{idx}"
                 
                 # 원본 텍스트 저장
                 original_text = contract["QL"].get("ORIGINAL_TEXT", "")
@@ -88,7 +88,7 @@ def main():
                     "topic": contract["ATTRB_INFO"]["KORN_UP_ATRB_NM"],
                     "sub_topic": contract["ATTRB_INFO"]["KORN_ATTRB_NM"],
                     "file_name": os.path.basename(json_file),
-                    "original_text": original_text
+                    # "original_text": original_text
                 }
 
                 # 콘텐츠 구성 최적화

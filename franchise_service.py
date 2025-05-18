@@ -11,16 +11,12 @@ import google.api_core.exceptions as google_exceptions
 from pydantic import BaseModel
 from typing import Dict, Any,List
 from langchain_core.documents import Document
+from reranker import Reranker # Reranker 
+
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-
-class RankedDocument(BaseModel):
-        id: str
-        content: str
-        relevance_score: float
-        # metadata: Dict[str, Any]  # 모든 메타데이터를 동적으로 저장
 
 class GeminiFranchiseService:
     """Chroma 기반 RAG와 Gemini를 활용한 추천 서비스"""
@@ -32,7 +28,6 @@ class GeminiFranchiseService:
             "회사가 제공하는 프랜차이즈 가맹본부 및 가맹점 관련 정보(예: 월매출, 가맹비, 로열티 등)로 임베딩된 테이블 데이터를 사용하여 질문에 답변하세요. "
             "반드시 제공받은 context를 기반으로만 답변해야 하며, 별도로 지식을 추가하거나 재구성해서는 안 됩니다. "
             "만약 질문이 제공된 context와 관련이 없거나, 답변할 정보가 없다면 일반적인 답변을 생성해주세요."
-            # "모든 답변은 친절하고 정확하게 작성하되, 추측은 절대 하지 마세요."
         )
         self.vectorstore_search_k = 3
         self.context_max_length = 8000
@@ -42,8 +37,6 @@ class GeminiFranchiseService:
         self.model = genai.GenerativeModel(settings.MODEL_NAME)
         embedding_model_path = settings.EMBEDDING_MODEL_PATH
         
-        # 구조화된 데이터처리
-        self.model_name = settings.MODEL_NAME
         self.client = google_genai.Client(api_key=api_key)
 
         # QA 데이터 경로
@@ -112,80 +105,19 @@ class GeminiFranchiseService:
             logger.error(f"LangChain Chroma 벡터스토어 로드 실패: {str(e)}", exc_info=True)
             raise
     
-    ## rerank
-    def rerank_docs(self, query: str, results):
-        """Chroma 검색 결과를 쿼리와의 관련성에 따라 재순위화하여 Document 리스트로 반환"""
-        try:
-            docs_payload = [
-                {
-                    "id": doc.metadata.get("ID", ""),
-                    "content": doc.page_content,
-                    "metadata": doc.metadata
-                } for doc in results
-            ]
-            prompt = (
-                f"사용자 쿼리: {query}\n\n"
-                "아래 문서 목록을 사용자 쿼리와의 관련성에 따라 다시 순위를 매겨주세요.\n"
-                "가장 관련성 높은 문서가 먼저 오도록 재정렬하고, 각 문서에 관련성 점수(0~1)를 부여해주세요.\n\n"
-                "문서 목록:\n"
-                f"{json.dumps(docs_payload, ensure_ascii=False, indent=2)}\n"
-            )
-            response = self.client.models.generate_content(
-                model=self.model_name,
-                contents=prompt,
-                config={
-            "response_mime_type": "application/json",
-            "response_schema": {
-                "type": "object",
-                "properties": {
-                    "ranked_documents": {
-                        "type": "array",
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "id": {"type": "string"},
-                                "content": {"type": "string"},
-                                "JNGHDQRTRS_CONM_NM": {"type": "string"},
-                                "BRAND_NM": {"type": "string"},
-                                "relevance_score": {"type": "number"},
-                                "reasoning": {"type": "string"}
-                            },
-                            "required": [
-                                "id", "content", "JNGHDQRTRS_CONM_NM",
-                                "BRAND_NM", "relevance_score", "reasoning"
-                            ],
-                        }
-                    }
-                },
-                "required": ["ranked_documents"],
-            }
-        }
-            )
-            print(response)
-            exit(1)
-            parsed = response.parsed
-            ranked_docs = [RankedDocument(**doc) for doc in parsed.get("ranked_documents", [])]
-            
-            # RankedDocument를 Document로 변환
-            document_list = [
-                Document(
-                    page_content=doc.content,
-                    metadata={**doc.metadata, "relevance_score": doc.relevance_score}
-                ) for doc in ranked_docs
-            ]
-            
-            logger.info(f"문서 재순위화 완료: {len(document_list)}개 문서")
-            return sorted(document_list, key=lambda d: d.metadata.get("relevance_score", 0.0), reverse=True)
-
-        except Exception as e:
-            logger.error(f"문서 재순위화 실패: {str(e)}")
-            # 오류 시 원래 results를 그대로 반환 (relevance_score 0.0 추가)
-            return [
-                Document(
-                    page_content=doc.page_content,
-                    metadata={**doc.metadata, "relevance_score": 0.0}
-                ) for doc in results
-            ]
+    def build_document_text(self, doc: Any, index: int) -> tuple[str, str]:
+        """문서의 메타데이터와 내용을 처리하여 헤더, 전체 텍스트, doc_id 반환"""
+        metadata = doc.metadata
+        doc_id = metadata.get("source", f"missing_id_{index}")  # doc_id 누락 시 대체값
+        brand = metadata.get("brand", "")
+        company = metadata.get("company", "")
+        topic = metadata.get("topic", "")
+        sub_topic = metadata.get("sub_topic", "")
+        year = metadata.get("year", "")
+        metadata_header = f"[{company} | {brand} | {year}년 | {topic} - {sub_topic}]"
+        doc_text = doc.page_content.strip()
+        full_text = f"{metadata_header}\n{doc_text}"
+        return full_text, doc_id
 
     def retrieve_context(self, query: str) -> str:
         """Chroma로 문서 검색 및 컨텍스트 생성"""
@@ -195,36 +127,25 @@ class GeminiFranchiseService:
                 query=query, 
                 k=self.vectorstore_search_k
             )
-            search_results = self.rerank_docs(query,search_results)
-            return
+
+            
+            
+
+
+
             # 검색된 문서로 컨텍스트 구성
             context = ""
             total_length = 0
             
             for i, doc in enumerate(search_results, 1):
                 # 메타데이터 추출
-                metadata = doc.metadata
-                brand = metadata.get("brand", "")
-                company = metadata.get("company", "")
-                
-                topic = metadata.get("topic", "")
-                sub_topic = metadata.get("sub_topic", "")
-                year = metadata.get("year", "")
-                
-                # 메타데이터 헤더 구성
-                metadata_header = f"[{company} | {brand} | {year}년 | {topic} - {sub_topic}]"
-                
-                # 문서 내용 가져오기
-                doc_text = doc.page_content.strip()
-                
-                # 최대 컨텍스트 길이 확인
-                full_text = f"{metadata_header}\n{doc_text}"
+                _, full_text= self.build_document_text(doc,i)
                 doc_length = len(full_text)
                 
                 if total_length + doc_length > self.context_max_length:
                     logger.info(f"최대 컨텍스트 길이 제한으로 {i-1}개의 문서만 포함")
                     break
-                
+
                 context += f"[문서 {i}]\n{full_text}\n\n"
                 total_length += doc_length
 
@@ -233,7 +154,7 @@ class GeminiFranchiseService:
         except Exception as e:
             logger.error(f"Chroma 검색 실패: {str(e)}")
             return ""
-
+    
     def answer_question(self, query: str) -> str:
         """사용자 질문에 RAG를 통해 답변"""
         try:
@@ -252,7 +173,6 @@ class GeminiFranchiseService:
 
             답변:
             """
-
             for attempt in range(3):  # 최대 3번 재시도
                 try:
                     response = self.model.generate_content(prompt)
