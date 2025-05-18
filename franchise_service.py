@@ -80,7 +80,7 @@ class GeminiFranchiseService:
             # 컬렉션 정보 확인
             collection = vectorstore._collection
             count = collection.count()
-            logger.info(f"벡터 스토어 로드 완료: {absolute_path}, 문서 수: {count}")
+            logger.info(f"벡터 스토어 로드 완료: {absolute_paretrieve_context_with_fewshotth}, 문서 수: {count}")
             
             # 문서가 없는 경우 경고
             if count == 0:
@@ -90,7 +90,7 @@ class GeminiFranchiseService:
         except Exception as e:
             logger.error(f"LangChain Chroma 벡터스토어 로드 실패: {str(e)}", exc_info=True)
             raise
-#변경사항
+    #변경사항
     def load_few_shot_vectorstore(self):
             """few_shot 벡터스토어 로드"""
             try:
@@ -110,7 +110,7 @@ class GeminiFranchiseService:
             except Exception as e:
                 logger.error(f"few_shot Chroma 벡터스토어 로드 실패: {str(e)}", exc_info=True)
                 raise
-#변경사항
+    #변경사항
     def retrieve_context_with_fewshot(self, query: str) -> str:
             """few_shot 컨텍스트 검색"""
             try:
@@ -135,7 +135,7 @@ class GeminiFranchiseService:
                 query=query, 
                 k=self.vectorstore_search_k
             )
-            
+            rerank_docs()
             # 검색된 문서로 컨텍스트 구성
             context = ""
             total_length = 0
@@ -290,4 +290,5 @@ class GeminiFranchiseService:
         
         logger.info(f"총 {len(results)}개의 질문 처리 완료")
         return results
+        
 
