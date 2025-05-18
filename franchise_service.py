@@ -80,7 +80,7 @@ class GeminiFranchiseService:
             # 컬렉션 정보 확인
             collection = vectorstore._collection
             count = collection.count()
-            logger.info(f"벡터 스토어 로드 완료: {absolute_paretrieve_context_with_fewshotth}, 문서 수: {count}")
+            logger.info(f"벡터 스토어 로드 완료: {absolute_path}, 문서 수: {count}")
             
             # 문서가 없는 경우 경고
             if count == 0:
@@ -111,11 +111,11 @@ class GeminiFranchiseService:
                 logger.error(f"few_shot Chroma 벡터스토어 로드 실패: {str(e)}", exc_info=True)
                 raise
     #변경사항
-    def retrieve_context_with_fewshot(self, query: str) -> str:
+    def retrieve_context2(self, query: str) -> str:
             """few_shot 컨텍스트 검색"""
             try:
                 results_code1 = self.few_shot_vectorstore.similarity_search(query=query, k=3)
-                context = "\n".join([
+                context2 = "\n".join([
                     f"문서 {idx}:\n질문: {doc.metadata['QUESTION']}\n답변: {doc.metadata['ANSWER']}\n{'---' * 10}"
                     for idx, doc in enumerate(results_code1, 1)])
                 # context2 = "\n".join([
@@ -123,7 +123,7 @@ class GeminiFranchiseService:
                 #     for idx, doc in enumerate(results_code1, 1)
                 # ])
                 logger.info(f"few_shot Chroma 검색 완료: {len(results_code1)}개 문서")
-                return context
+                return context2
             except Exception as e:
                 logger.error(f"few_shot Chroma 검색 실패: {str(e)}")
                 return ""    
@@ -135,7 +135,7 @@ class GeminiFranchiseService:
                 query=query, 
                 k=self.vectorstore_search_k
             )
-            rerank_docs()
+            
             # 검색된 문서로 컨텍스트 구성
             context = ""
             total_length = 0
@@ -176,7 +176,7 @@ class GeminiFranchiseService:
                 """사용자 질문에 RAG를 통해 답변"""
                 try:
                     context = self.retrieve_context(query)
-                    examples = self.retrieve_context_with_fewshot(query)  # few_shot 컨텍스트 검색
+                    context2 = self.retrieve_context2(query)  # few_shot 컨텍스트 검색
                     if not context:
                         return "검색 결과가 없습니다. 다른 질문을 해주세요."
                     # prompt = f"""
@@ -191,7 +191,7 @@ class GeminiFranchiseService:
                     prompt = f"""
                     {self.initial_system_message}
                     다음은 예시 질문과 답변입니다:
-                {examples}
+                {context2}
                 [참고 문서]
                 {context}
                 [질문]
@@ -290,5 +290,4 @@ class GeminiFranchiseService:
         
         logger.info(f"총 {len(results)}개의 질문 처리 완료")
         return results
-        
 
