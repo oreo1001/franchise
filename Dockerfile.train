@@ -35,6 +35,7 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 COPY config.py franchise_service.py franchise_RAG.sh create_collection.py run_inference.py reranker.py emb_dpr.py run_train.sh ./
 COPY stal-v1 /app/stal-v1
 COPY vector_db/few_shot /app/vector_db/few_shot
+COPY dataset /app/dataset
 
 RUN chmod +x franchise_RAG.sh
 ENV TZ=Asia/Seoul

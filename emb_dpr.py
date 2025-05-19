@@ -40,7 +40,7 @@ from wandb import Settings
 # -----------------------------------------------------------------------------
 # 1) Configuration
 # -----------------------------------------------------------------------------
-SAVE_DIR = "./test"
+SAVE_DIR = "./checkpoints/"
 MODEL_NAME = "./stal-v2/"
 TRAIN_FILE = "./dataset/train.jsonl"
 EVAL_FILE = "./dataset/eval.jsonl"
@@ -239,8 +239,8 @@ if __name__ == '__main__':
 
     # W&B 및 RNG 복원 설정
     torch.serialization.add_safe_globals([np_reconstruct, np.generic, np.ndarray, np.dtype])
-    wandb.login(key="YOUR_WANDB_API_KEY")
-    wandb.init(entity="YOUR_WANDB_ENTITY", project="FTC-Competition", name=training_args.run_name, config=training_args.to_dict(), settings=Settings(init_timeout=180))
+    wandb.login(key=wandb_api_key)
+    wandb.init(entity=wandb_api_key, project="FTC-Competition", name=training_args.run_name, config=training_args.to_dict(), settings=Settings(init_timeout=180))
 
     trainer = DPRTrainer(
         model=model,
