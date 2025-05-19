@@ -11,6 +11,7 @@ LoRA 및 DPR 기법을 활용한 임베딩 모델 학습 스크립트.
 - DPRTrainer: Trainer 커스터마이징
 """
 
+import datetime
 import os
 import random
 import json
@@ -215,7 +216,9 @@ if __name__ == '__main__':
 
     train_ds = DPRDataset(TRAIN_FILE, tokenizer)
     eval_ds = DPRDataset(EVAL_FILE, tokenizer)
-
+    timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    run_name = f"{timestamp}-dpr-stal-v2"
+    
     training_args = TrainingArguments(
         output_dir=SAVE_DIR,
         per_device_train_batch_size=8,
@@ -231,7 +234,7 @@ if __name__ == '__main__':
         save_strategy='steps', save_steps=1000, save_total_limit=3,
         load_best_model_at_end=True, metric_for_best_model='eval_loss', greater_is_better=False,
         lr_scheduler_type='linear', max_grad_norm=1.0,
-        report_to='wandb', run_name='20250519-06-dpr-stal-v2'
+        report_to='wandb', run_name=run_name
     )
 
     # W&B 및 RNG 복원 설정
