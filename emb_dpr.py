@@ -36,16 +36,16 @@ from peft import LoraConfig, get_peft_model
 import wandb
 from wandb import Settings
 
-
 # -----------------------------------------------------------------------------
 # 1) Configuration
 # -----------------------------------------------------------------------------
-SAVE_DIR = "../outputs/KURE-v1-250518-6/"
-MODEL_NAME = "/data2/models/KURE-v1/"
-TRAIN_FILE = "../dataset/FTC_competition/outputs/ftc_contest_data2/train.jsonl"
-EVAL_FILE = "../dataset/FTC_competition/outputs/ftc_contest_data2/eval.jsonl"
+SAVE_DIR = "./test"
+MODEL_NAME = "./stal-v2/"
+TRAIN_FILE = "./dataset/train.jsonl"
+EVAL_FILE = "./dataset/eval.jsonl"
 os.makedirs(SAVE_DIR, exist_ok=True)
 
+wandb_api_key = os.environ.get("WANDB_API_KEY")
 
 # -----------------------------------------------------------------------------
 # 2) Dataset Definition
@@ -123,7 +123,6 @@ def collate_fn(batch: list) -> dict:
         "ctx_attn": ctx_batch["attention_mask"].view(B, C, -1),
         "pos_mask": torch.tensor(pos_mask, dtype=torch.float),
     }
-
 
 # -----------------------------------------------------------------------------
 # 4) DPR Loss Function
@@ -232,7 +231,7 @@ if __name__ == '__main__':
         save_strategy='steps', save_steps=1000, save_total_limit=3,
         load_best_model_at_end=True, metric_for_best_model='eval_loss', greater_is_better=False,
         lr_scheduler_type='linear', max_grad_norm=1.0,
-        report_to='wandb', run_name='20250518-06-dpr-KURE-v1'
+        report_to='wandb', run_name='20250519-06-dpr-stal-v2'
     )
 
     # W&B 및 RNG 복원 설정

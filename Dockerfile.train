@@ -1,0 +1,43 @@
+# Stage 1: 빌드
+FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04 AS builder
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    python3.10 \
+    python3-pip \
+    python3.10-dev \
+    build-essential \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip3 install --upgrade pip && \
+    pip3 install --no-cache-dir -r requirements.txt
+
+# Stage 2: 실행
+FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    python3.10 \
+    python3-pip \
+    ca-certificates \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY --from=builder /usr/local/lib/python3.10/dist-packages /usr/local/lib/python3.10/dist-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+COPY config.py franchise_service.py franchise_RAG.sh create_collection.py run_inference.py reranker.py emb_dpr.py run_train.sh ./
+COPY stal-v1 /app/stal-v1
+COPY vector_db/few_shot /app/vector_db/few_shot
+
+RUN chmod +x franchise_RAG.sh
+ENV TZ=Asia/Seoul
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+ENV PYTHONUNBUFFERED=1
+CMD ["/bin/bash"]
