@@ -102,7 +102,7 @@ class GeminiFranchiseService:
                 vectorstore = Chroma(
                     persist_directory=absolute_path,
                     embedding_function=self.embeddings,
-                    collection_name="few_shot"
+                    collection_name="few_shot_finetune"
                 )
                 count = vectorstore._collection.count()
                 logger.info(f"few_shot 벡터 스토어 로드 완료: {absolute_path}, 문서 수: {count}")
