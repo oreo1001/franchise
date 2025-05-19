@@ -1,15 +1,11 @@
-.log
-app.log
-.env
-__pycache__/
-*/vector_db/*
-**/vector_db/
-/vector_db/*
-/venv
-convert_pdf.log
-/tmp/
-/data
-/stal-v1
+# 제외할 디렉토리
+data/
+KURE-v1-250518-5-merged/
+output/
+stal-v1/
+vector_db/
+result/
+tmp/
 
 # Python 관련 불필요한 파일
 __pycache__/
@@ -17,9 +13,12 @@ __pycache__/
 *.pyo
 *.pyd
 
-# 환경 설정 파일
+# 환경 설정 및 민감한 파일
 .env
+*.env
 *.log
+app.log
+convert_pdf.log
 *.bak
 
 # IDE 관련 파일
@@ -27,15 +26,28 @@ __pycache__/
 .idea/
 *.iml
 
-# Virtual environment (venv, conda 등)
+# Virtual environment
 venv/
-.env/
 .venv/
 *.egg-info/
 *.dist-info/
 
-# Jupyter Notebook 체크포인트
+# Jupyter Notebook 관련
+*.ipynb
 .ipynb_checkpoints/
+2_Train_Embeding_.ipynb
+
+# 제외할 특정 스크립트
+json_compare.py
+json_compare2.py
+
+# 데이터 파일
+test_data*.json
+*.csv
+*.tsv
+*.sqlite3
+*.db
+.DS_Store
 
 # 빌드 및 배포 관련
 build/
@@ -43,13 +55,6 @@ dist/
 *.egg
 *.manifest
 *.spec
-
-# 데이터 및 대형 파일
-*.sqlite3
-*.db
-*.csv
-*.tsv
-.DS_Store
 
 # Git 및 SSH 키 관련
 *.pem
@@ -59,7 +64,6 @@ dist/
 
 # Logs & Debug
 logs/
-*.log
 nohup.out
 
 # Docker
@@ -70,10 +74,10 @@ docker-compose.override.yml
 instance/
 *.pid
 
-# MongoDB 관련 (데이터베이스 덤프)
+# MongoDB 관련
 dump/
 *.bson
 *.lock
 
-# AWS / Boto 관련 파일
+# AWS / Boto 관련
 .aws/
