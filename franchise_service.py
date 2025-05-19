@@ -109,7 +109,7 @@ class GeminiFranchiseService:
                 vectorstore = Chroma(
                     persist_directory=absolute_path,
                     embedding_function=self.embeddings,
-                    collection_name="few_shot"
+                    collection_name="few_shot_finetune"
                 )
                 count = vectorstore._collection.count()
                 logger.info(f"few_shot 벡터 스토어 로드 완료: {absolute_path}, 문서 수: {count}")
@@ -233,10 +233,10 @@ class GeminiFranchiseService:
         if not self.qa_data:
             logger.error("QA 데이터가 없습니다.")
             return []
-        
+        print("====테스트중====")
         # 처음 15개의 QA 항목만 선택
-        limited_qa_data = self.qa_data[:2]
-        logger.info(f"총 {len(self.qa_data)}개 QA 중 처음 15개만 처리합니다.")
+        limited_qa_data = self.qa_data[:30]
+        logger.info(f"총 {len(self.qa_data)}개 QA 중 처음 30개만 처리합니다.")
         
         results = []
         
@@ -244,6 +244,7 @@ class GeminiFranchiseService:
             try:
                 original_text = qa_item["original_text"]
                 question = qa_item["question"]
+                ground_truth = qa_item["answer"]
                 
                 logger.info(f"질문 {i+1}/15 처리 중: {question}")
                 
@@ -254,7 +255,8 @@ class GeminiFranchiseService:
                 result = {
                     "original_text": original_text,
                     "question": question,
-                    "answer": answer  # LLM 추론 결과
+                    "answer": answer,  # LLM 추론 결과
+                    "ground_truth":ground_truth
                 }
                 results.append(result)
                 

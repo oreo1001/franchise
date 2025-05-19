@@ -31,3 +31,7 @@ numpy>=1.24.0
 
 ##구조화된 출력
 google-genai
+
+##테스트용
+evaluate
+bert_score

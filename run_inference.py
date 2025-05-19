@@ -14,7 +14,7 @@ def main():
         GEMINI_API_KEY = settings.GEMINI_API_KEY
         
         # 출력 경로 설정
-        output_path = "/app/test/test_data.json"
+        output_path = "./test_data.json"
         
         # 서비스 초기화
         logger.info("프랜차이즈 RAG 서비스 초기화 중...")
@@ -22,7 +22,7 @@ def main():
         
         # 테스트 데이터 처리
         logger.info("테스트 데이터 추론 시작...")
-        results = rag_service.process_test_data()
+        results = rag_service.process_test_data_for_test()
         
         # 결과 저장
         with open(output_path, 'w', encoding='utf-8') as f:
