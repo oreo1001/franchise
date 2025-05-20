@@ -20,7 +20,7 @@ class GeminiFranchiseService:
         self.initial_system_message = (
             "당신은 프랜차이즈 가맹점주를 위한 전문 Q&A 어시스턴트입니다. "
             "반드시 제공받은 context를 기반으로만 답변해야 하며, 별도로 지식을 추가하거나 재구성해서는 안 됩니다. "
-            "만약 질문이 제공된 context와 관련이 없거나, 답변할 정보가 없다면 예시 질문과 답변으로 그럴듯하게 답변하세요 ."
+            "만약 질문이 제공된 context와 관련이 없거나, 답변할 정보가 없다면 예시 질문과 답변을 참고하여 답변하세요 ."
             "답변 시 출처나 참고 표시는 포함하지 말아주세요."
         )
         self.vectorstore_search_k = 20
@@ -109,7 +109,7 @@ class GeminiFranchiseService:
                 vectorstore = Chroma(
                     persist_directory=absolute_path,
                     embedding_function=self.embeddings,
-                    collection_name="few_shot"
+                    collection_name="few_shot_finetune"
                 )
                 count = vectorstore._collection.count()
                 logger.info(f"few_shot 벡터 스토어 로드 완료: {absolute_path}, 문서 수: {count}")
