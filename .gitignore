@@ -9,10 +9,9 @@ __pycache__/
 convert_pdf.log
 /tmp/
 /data
-/stal-v1
-stal-v1/
 squad-v1/
 dataset/
+
 # Python 관련 불필요한 파일
 __pycache__/
 *.pyc
@@ -80,3 +79,4 @@ dump/
 # AWS / Boto 관련 파일
 .aws/
 *.tar
+
