@@ -7,6 +7,8 @@ from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 from config import settings
 import google.api_core.exceptions as google_exceptions
+from reranker import Reranker ## Reranker 적용
+
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -18,10 +20,11 @@ class GeminiFranchiseService:
         self.initial_system_message = (
             "당신은 프랜차이즈 가맹점주를 위한 전문 Q&A 어시스턴트입니다. "
             "반드시 제공받은 context를 기반으로만 답변해야 하며, 별도로 지식을 추가하거나 재구성해서는 안 됩니다. "
-            "만약 질문이 제공된 context와 관련이 없거나, 답변할 정보가 없다면 예시 질문과 답변으로 그럴듯하게 답변하세요 ."
+            "만약 질문이 제공된 context와 관련이 없거나, 답변할 정보가 없다면 예시 질문과 답변을 참고하여 답변하세요 ."
+            "답변 시 출처나 참고 표시는 포함하지 말아주세요."
         )
-        self.vectorstore_search_k = 3
-        self.context_max_length = 8000# 변경
+        self.vectorstore_search_k = 20
+        self.context_max_length = 30000
         genai.configure(api_key=api_key)
         self.vector_db_path = settings.VECTOR_DB_PATH
         self.model = genai.GenerativeModel(settings.MODEL_NAME)
@@ -41,6 +44,9 @@ class GeminiFranchiseService:
         # Chroma 벡터 스토어 초기화
         self.chroma_vectorstore = self.load_chroma_vectorstore()
         self.few_shot_vectorstore = self.load_few_shot_vectorstore()
+
+        ## Reranking
+        self.reranker = Reranker(api_key,settings.MODEL_NAME)
     
     def _load_qa_data(self):
         """QA 데이터 로드"""
@@ -110,53 +116,54 @@ class GeminiFranchiseService:
             except Exception as e:
                 logger.error(f"few_shot Chroma 벡터스토어 로드 실패: {str(e)}", exc_info=True)
                 raise
-    #변경사항
-    def retrieve_context2(self, query: str) -> str:
+    def retrieve_context_fewshot(self, query: str) -> str:
             """few_shot 컨텍스트 검색"""
             try:
                 results_code1 = self.few_shot_vectorstore.similarity_search(query=query, k=3)
-                context2 = "\n".join([
-                    f"문서 {idx}:\n질문: {doc.metadata['QUESTION']}\n답변: {doc.metadata['ANSWER']}\n{'---' * 10}"
+                context = "\n".join([
+                    f"예시 {idx}:\n질문: {doc.metadata['QUESTION']}\n답변: {doc.metadata['ANSWER']}\n{'---' * 10}"
                     for idx, doc in enumerate(results_code1, 1)])
-                # context2 = "\n".join([
-                #     f"문서 {idx}:{doc.metadata['ORIGINAL_TEXT']}\n\n질문: {doc.metadata['QUESTION']}\n답변: {doc.metadata['ANSWER']}\n{'---' * 10}"
-                #     for idx, doc in enumerate(results_code1, 1)
-                # ])
                 logger.info(f"few_shot Chroma 검색 완료: {len(results_code1)}개 문서")
-                return context2
+                return context
             except Exception as e:
                 logger.error(f"few_shot Chroma 검색 실패: {str(e)}")
-                return ""    
+                return ""  
+
+    ## Document to text
+    def build_document_text(self, doc, index: int) -> tuple[str, str]:
+        """문서의 메타데이터와 내용을 처리하여 전체 텍스트, doc_id 반환"""
+        metadata = doc.metadata
+        doc_id = metadata.get("source", f"missing_id_{index}")  # doc_id 누락 시 대체값
+        brand = metadata.get("brand", "")
+        company = metadata.get("company", "")
+        topic = metadata.get("topic", "")
+        sub_topic = metadata.get("sub_topic", "")
+        year = metadata.get("year", "")
+        metadata_header = f"[{company} | {brand} | {year}년 | {topic} - {sub_topic}]"
+        doc_text = doc.page_content.strip()
+        full_text = f"{metadata_header}\n{doc_text}"
+        return doc_id, full_text             
+      
     def retrieve_context(self, query: str) -> str:
         """Chroma로 문서 검색 및 컨텍스트 생성"""
         try:
             # 기본적인 similarity search 사용
+            
             search_results = self.chroma_vectorstore.similarity_search(
                 query=query, 
                 k=self.vectorstore_search_k
             )
-            
+            search_results = self.reranker.rerank_docs(query,search_results,build_fn=self.build_document_text)
+ 
             # 검색된 문서로 컨텍스트 구성
             context = ""
             total_length = 0
             
             for i, doc in enumerate(search_results, 1):
                 # 메타데이터 추출
-                metadata = doc.metadata
-                brand = metadata.get("brand", "")
-                company = metadata.get("company", "")
-                topic = metadata.get("topic", "")
-                sub_topic = metadata.get("sub_topic", "")
-                year = metadata.get("year", "")
-                
-                # 메타데이터 헤더 구성
-                metadata_header = f"[{company} | {brand} | {year}년 | {topic} - {sub_topic}]"
-                
-                # 문서 내용 가져오기
-                doc_text = doc.page_content.strip()
+                _, full_text= self.build_document_text(doc,i)
                 
                 # 최대 컨텍스트 길이 확인
-                full_text = f"{metadata_header}\n{doc_text}"
                 doc_length = len(full_text)
                 
                 if total_length + doc_length > self.context_max_length:
@@ -171,14 +178,15 @@ class GeminiFranchiseService:
         except Exception as e:
             logger.error(f"Chroma 검색 실패: {str(e)}")
             return ""
-
+          
     def answer_question(self, query: str) -> str:
                 """사용자 질문에 RAG를 통해 답변"""
                 try:
                     context = self.retrieve_context(query)
-                    context2 = self.retrieve_context2(query)  # few_shot 컨텍스트 검색
-                    if not context:
-                        return "검색 결과가 없습니다. 다른 질문을 해주세요."
+                    context2 = self.retrieve_context_fewshot(query)  # few_shot 컨텍스트 검색
+                
+                    # if not context:
+                    #     return "검색 결과가 없습니다. 다른 질문을 해주세요."
                     # prompt = f"""
                     # {self.initial_system_message}
                     # 아래는 다른 회사의 상담 기록이야. 참고해
@@ -198,9 +206,11 @@ class GeminiFranchiseService:
                 {query}
                 [답변]:
                     """
+                    # print(prompt)
                     for attempt in range(3):  # 최대 3번 재시도
                         try:
                             response = self.model.generate_content(prompt)
+                            # print(response.text)
                             return response.text
                         except google_exceptions.ResourceExhausted as e:
                             if "quota" in str(e).lower() or "retry" in str(e).lower():
@@ -221,7 +231,7 @@ class GeminiFranchiseService:
             return []
         
         # 처음 15개의 QA 항목만 선택
-        limited_qa_data = self.qa_data[:15]
+        limited_qa_data = self.qa_data[:2]
         logger.info(f"총 {len(self.qa_data)}개 QA 중 처음 15개만 처리합니다.")
         
         results = []
@@ -264,8 +274,6 @@ class GeminiFranchiseService:
         if not self.qa_data:
             logger.error("QA 데이터가 없습니다.")
             return []
-        
-        
         results = []
         
         for i, qa_item in enumerate(self.qa_data):
@@ -285,7 +293,7 @@ class GeminiFranchiseService:
             }
             results.append(result)
             
-            # 로깅
+            # # 로깅
             logger.info(f"질문 {i+1} 처리 완료")
         
         logger.info(f"총 {len(results)}개의 질문 처리 완료")

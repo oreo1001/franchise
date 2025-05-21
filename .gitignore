@@ -9,8 +9,8 @@ __pycache__/
 convert_pdf.log
 /tmp/
 /data
-/dataset
-/squad-v1
+squad-v1/
+dataset/
 
 # Python 관련 불필요한 파일
 __pycache__/
@@ -78,5 +78,5 @@ dump/
 
 # AWS / Boto 관련 파일
 .aws/
+*.tar
 
-stal-franchise-v1-2.0.0.tar

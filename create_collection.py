@@ -6,6 +6,7 @@ import argparse
 import json
 import os
 import glob
+import shutil
 
 def main():
     # 명령줄 인자 처리 - JSON 경로만 받음
@@ -22,6 +23,9 @@ def main():
     model_path = settings.EMBEDDING_MODEL_PATH
     
     # 출력 디렉토리가 없으면 생성
+    # 벡터 저장소 디렉토리 초기화
+    if os.path.exists(vector_db_path):
+        shutil.rmtree(vector_db_path)
     os.makedirs(vector_db_path, exist_ok=True)
     
     # 질문-답변 데이터 저장용 디렉토리
@@ -59,8 +63,8 @@ def main():
             file_count += 1
             print(f"파일 {os.path.basename(json_file)} 로드 완료 - {len(contracts_data)}개 항목")
             
-            for contract in contracts_data:
-                doc_id = f"{contract['LRN_DTIN_MNNO']}_{contract['CHNK_NO']}"
+            for idx, contract in enumerate(contracts_data):
+                doc_id = f"{contract['LRN_DTIN_MNNO']}_{idx}"
                 
                 # 원본 텍스트 저장
                 original_text = contract["QL"].get("ORIGINAL_TEXT", "")
@@ -88,21 +92,20 @@ def main():
                     "topic": contract["ATTRB_INFO"]["KORN_UP_ATRB_NM"],
                     "sub_topic": contract["ATTRB_INFO"]["KORN_ATTRB_NM"],
                     "file_name": os.path.basename(json_file),
-                    "original_text": original_text
+                    # "original_text": original_text
                 }
 
                 # 콘텐츠 구성 최적화
                 content = ""
 
-                # 1. 요약된 내용을 우선적으로 사용 (LLM이 이해하기 쉽게)
-                if "EXTRACTED_SUMMARY_TEXT" in contract["QL"] and contract["QL"]["EXTRACTED_SUMMARY_TEXT"]:
-                    extracted_summary = contract["QL"]["EXTRACTED_SUMMARY_TEXT"]
-                    content = f"{extracted_summary}\n\n"
-                    
-                    # 요약 없는 경우에만 원본 사용
-                elif "ORIGINAL_TEXT" in contract["QL"] and contract["QL"]["ORIGINAL_TEXT"]:
+                # 원본 사용
+                if "ORIGINAL_TEXT" in contract["QL"] and contract["QL"]["ORIGINAL_TEXT"]:
                     original_text = contract["QL"]["ORIGINAL_TEXT"]
                     content = f"{original_text}\n\n"
+                      # 2. 요약된 내용을 우선적으로 사용 (LLM이 이해하기 쉽게)
+                elif "EXTRACTED_SUMMARY_TEXT" in contract["QL"] and contract["QL"]["EXTRACTED_SUMMARY_TEXT"]:
+                    extracted_summary = contract["QL"]["EXTRACTED_SUMMARY_TEXT"]
+                    content = f"{extracted_summary}\n\n"    
 
                 # 내용이 비어있지 않은 경우만 문서 생성
                 if content.strip():
