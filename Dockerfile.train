@@ -42,4 +42,5 @@ RUN chmod +x run_train.sh
 ENV TZ=Asia/Seoul
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 ENV PYTHONUNBUFFERED=1
+ENV NCCL_SHM_DISABLE=1
 CMD ["/bin/bash"]

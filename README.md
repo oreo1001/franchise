@@ -11,7 +11,7 @@
 # 이미지 로드
 docker load -i squad-franchise.tar
 # 테스트 json 폴더 볼륨 마운트, GEMINI API KEY 넣기
-docker run --rm -it --gpus all -v your_test_folder:/app/test -e GEMINI_API_KEY=your_api_key squad-franchise:latest /bin/bash
+docker run --rm -it --gpus all --shm-size=32g -v your_test_folder:/app/test -e GEMINI_API_KEY=your_api_key squad-franchise:latest /bin/bash
 
 # 도커 내부에서 bash 파일 실행
 bash franchise_RAG.sh /app/test
