@@ -47,7 +47,6 @@ class GeminiFranchiseService:
 
         ## Reranking
         self.reranker = Reranker(api_key,settings.MODEL_NAME)
-   
     
     def _load_qa_data(self):
         """QA 데이터 로드"""
@@ -117,7 +116,6 @@ class GeminiFranchiseService:
             except Exception as e:
                 logger.error(f"few_shot Chroma 벡터스토어 로드 실패: {str(e)}", exc_info=True)
                 raise
-
     def retrieve_context_fewshot(self, query: str) -> str:
             """few_shot 컨텍스트 검색"""
             try:
@@ -145,7 +143,7 @@ class GeminiFranchiseService:
         doc_text = doc.page_content.strip()
         full_text = f"{metadata_header}\n{doc_text}"
         return doc_id, full_text             
-
+      
     def retrieve_context(self, query: str) -> str:
         """Chroma로 문서 검색 및 컨텍스트 생성"""
         try:
@@ -180,9 +178,7 @@ class GeminiFranchiseService:
         except Exception as e:
             logger.error(f"Chroma 검색 실패: {str(e)}")
             return ""
-
- 
-
+          
     def answer_question(self, query: str) -> str:
                 """사용자 질문에 RAG를 통해 답변"""
                 try:
