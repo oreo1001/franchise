@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     VECTOR_DB_PATH: str = "./vector_db/franchise"
     MODEL_NAME: str = "gemini-2.0-flash"
     #MODEL_NAME: str = "gemini-1.5-flash-8b"
-    EMBEDDING_MODEL_PATH: str = "./stal-v2"
+    EMBEDDING_MODEL_PATH: str = "./squad-v1"
     DEVICE: str = "cuda"
     # DEVICE: str = "cpu"
     

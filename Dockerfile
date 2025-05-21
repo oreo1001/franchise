@@ -33,7 +33,7 @@ COPY --from=builder /usr/local/lib/python3.10/dist-packages /usr/local/lib/pytho
 COPY --from=builder /usr/local/bin /usr/local/bin
 
 COPY config.py franchise_service.py franchise_RAG.sh create_collection.py run_inference.py reranker.py ./
-COPY stal-v2 /app/stal-v2
+COPY squad-v1 /app/squad-v1
 COPY vector_db/few_shot /app/vector_db/few_shot
 
 RUN chmod +x franchise_RAG.sh

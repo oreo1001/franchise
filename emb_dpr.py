@@ -217,7 +217,7 @@ if __name__ == '__main__':
     train_ds = DPRDataset(TRAIN_FILE, tokenizer)
     eval_ds = DPRDataset(EVAL_FILE, tokenizer)
     timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-    run_name = f"{timestamp}-dpr-stal-v2"
+    run_name = f"{timestamp}-dpr-squad-v1"
     
     training_args = TrainingArguments(
         output_dir=SAVE_DIR,
