@@ -23,3 +23,8 @@ pydantic-settings>=2.0.3
 
 # 임베딩 처리에 필요한 최소 유틸리티
 numpy>=1.24.0
+
+# 학습
+transformers>=4.38.0
+peft>=0.9.0
+wandb>=0.16.0
