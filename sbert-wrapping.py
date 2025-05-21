@@ -1,7 +1,7 @@
 from sentence_transformers import SentenceTransformer, models
 
 # 1. 기존 transformer 모델 로드
-word_embedding_model = models.Transformer('./stal-v2-test', max_seq_length=8192)
+word_embedding_model = models.Transformer('./stal-v2', max_seq_length=8192)
 
 # 2. Pooling 설정 (mean-pooling 추천)
 pooling_model = models.Pooling(
@@ -15,4 +15,4 @@ pooling_model = models.Pooling(
 model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
 
 # 4. 새로운 디렉토리에 저장 (sbert 포맷으로)
-model.save('./stal-v2')  # huggingface에 올릴 때도 이걸 기준으로
+model.save('./squad-v1')  # huggingface에 올릴 때도 이걸 기준으로
